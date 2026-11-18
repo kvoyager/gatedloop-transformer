@@ -166,6 +166,39 @@ def test_truncated_bptt():
           "no starved layers — OK")
 
 
+def test_truncated_bptt_static_kv():
+    """With static_kv, iteration 0 computes the K/V every later iteration reuses.
+    Under truncation it must stay differentiable, or kW/vW of every looped layer
+    get no gradient at all and stay frozen at their initial values."""
+    ids = torch.randint(0, BASE["vocab_size"], (2, 16))
+    for target in ("attn", "block"):
+        full = _looped(4, loop_target=target, loop_static_kv=True)
+        trunc = _looped(4, loop_target=target, loop_static_kv=True, loop_backprop_k=1)
+        trunc.load_state_dict(full.state_dict())
+
+        losses, qgrads = {}, {}
+        for name, m in [("full", full), ("trunc", trunc)]:
+            m.zero_grad()
+            loss = m(ids, labels=ids).loss
+            loss.backward()
+            losses[name] = loss.item()
+            for i in range(BASE["n_layers"]):
+                for w in ("kW", "vW"):
+                    g = getattr(m.blocks[i].attn, w).weight.grad
+                    assert g is not None and torch.isfinite(g).all() and g.abs().sum() > 0, \
+                        f"{target}/{name}: block {i} attn.{w} got no gradient"
+            for probe in ["blocks.0.ff.down.weight", "embed.weight"]:
+                g = dict(m.named_parameters())[probe].grad
+                assert g is not None and g.abs().sum() > 0, f"{target}/{name}: no gradient on {probe}"
+            qgrads[name] = m.blocks[1].attn.qW.weight.grad.clone()
+
+        assert abs(losses["full"] - losses["trunc"]) < 1e-6, \
+            f"{target}: truncation changed the forward value"
+        assert not torch.allclose(qgrads["full"], qgrads["trunc"]), \
+            f"{target}: truncation is not active with static_kv"
+    print("  truncated BPTT + static_kv (attn+block): K/V projections keep their gradient — OK")
+
+
 def test_loop_target_block():
     """loop_target="block" pulls the FFN into the loop — and nothing else."""
     # Same weights, different wiring: the two modes must disagree for R > 1.
@@ -295,7 +328,7 @@ def test_overfit_single_batch():
 def main():
     for fn in [test_param_parity, test_step_embed_cost, test_depth_and_loops_matter,
                test_loop_layers_subset, test_causality, test_rope_is_relative,
-               test_truncated_bptt, test_loop_target_block, test_loop_trace,
+               test_truncated_bptt, test_truncated_bptt_static_kv, test_loop_target_block, test_loop_trace,
                test_loop_trace_output_kl, test_gate_init,
                test_generate_shapes,
                test_overfit_single_batch]:

@@ -65,7 +65,10 @@ Configuration
                     so R can be raised in the forward pass while the backward
                     graph (and activation memory) stays bounded. The skipped
                     iterations are spliced back in as a constant update rather
-                    than detached outright — see ``forward``.
+                    than detached outright — see ``forward``. With
+                    ``static_kv``, iteration 0 always keeps its gradients (it
+                    produces the K/V all later iterations reuse), so the graph
+                    holds k + 1 iterations instead of k.
   loop_layers       which layers loop at all (default: all of them). Looping only
                     the middle of the stack is a common, cheaper variant.
   static_kv         compute K and V once, on the first iteration, and reuse
@@ -236,9 +239,20 @@ class DecoderBlock(nn.Module):
             # outright (the usual recipe for a single top-level recurrence) would
             # here cut the gradient path to every layer BELOW this one, since the
             # loop sits inside each layer rather than around the whole stack.
-            with torch.no_grad():
-                x_ng, kv = self._loop_iters(x, rope, block_idx, 0, n_nograd, last=False)
-            x = x + (x_ng - x).detach()
+            kv, lo = None, 0
+            if self.static_kv:
+                # Iteration 0 computes the K/V that every later iteration reuses.
+                # Run it WITH gradients: under no_grad those K/V would be
+                # constants, so kW / vW would get no gradient at all and stay at
+                # their initial values. Costs one extra iteration of activations.
+                x, kv = self._loop_iters(x, rope, block_idx, 0, 1, last=False)
+                lo = 1
+            if n_nograd > lo:
+                with torch.no_grad():
+                    x_ng, kv_ng = self._loop_iters(x, rope, block_idx, lo, n_nograd,
+                                                   kv=kv, last=False)
+                x = x + (x_ng - x).detach()
+                kv = kv if kv is not None else kv_ng
             start = n_nograd
         else:
             start, kv = 0, None
