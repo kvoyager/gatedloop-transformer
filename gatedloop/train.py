@@ -39,6 +39,7 @@ from pytorch_lightning.callbacks import LearningRateMonitor, ModelCheckpoint
 from pytorch_lightning.loggers import CSVLogger, TensorBoardLogger
 from torch.utils.data import DataLoader
 
+from gatedloop import paths
 from gatedloop.data.loader import make_loader_kwargs
 from gatedloop.data.mixture import build_datasets
 from gatedloop.tokenizer import TextTokenizer
@@ -55,18 +56,10 @@ warnings.filterwarnings("ignore", message=".*does not have many workers.*")
 warnings.filterwarnings("ignore", message=".*expandable_segments not supported.*")
 torch.set_float32_matmul_precision("high")
 
-# Repo root = parent of the package (this file is <pkg>/train.py). Relative paths
-# in the config (artifacts/, runs/) are anchored HERE rather than at the launch
-# cwd, so they resolve to the same place the prep scripts write them no matter
-# which directory you launch from or where Hydra moves the process cwd.
-_REPO_ROOT = Path(__file__).resolve().parents[1]
-
-
-def _abs(path: str | None) -> str | None:
-    if path is None:
-        return None
-    p = Path(path)
-    return str(p if p.is_absolute() else _REPO_ROOT / p)
+# Relative paths in the config (artifacts/, runs/) are anchored at the repo root
+# in a source checkout, or at the launch directory for an installed copy — see
+# paths.py. Never at site-packages, and not at wherever Hydra moves the cwd.
+_abs = paths.resolve
 
 
 def _run_name(cfg: DictConfig) -> str:

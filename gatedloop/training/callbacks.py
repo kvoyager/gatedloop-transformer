@@ -39,10 +39,9 @@ import torch
 import torch.nn.functional as F
 from pytorch_lightning.callbacks import RichProgressBar
 
-log = logging.getLogger(__name__)
+from gatedloop import paths
 
-# Repo root = parent of the package (this file is <pkg>/training/callbacks.py).
-_REPO_ROOT = Path(__file__).resolve().parents[2]
+log = logging.getLogger(__name__)
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -227,8 +226,10 @@ _EXCLUDE_DIRS = {".git", ".claude", "__pycache__", ".venv", "venv",
                  ".idea", ".vscode", "node_modules"}
 
 
-def _snapshot_code_bytes(source_dir: Path) -> bytes:
-    """Zip only source/config files under ``source_dir`` into memory."""
+def _snapshot_code_bytes(source_dir: Path, arc_root: Path | None = None) -> bytes:
+    """Zip only source/config files under ``source_dir`` into memory, with names
+    relative to ``arc_root`` (default: ``source_dir`` itself)."""
+    arc_root = arc_root or source_dir
     buf = io.BytesIO()
     with zipfile.ZipFile(buf, "w", zipfile.ZIP_DEFLATED) as zf:
         for root, dirs, files in os.walk(source_dir):
@@ -237,7 +238,7 @@ def _snapshot_code_bytes(source_dir: Path) -> bytes:
                 if Path(f).suffix.lower() not in _INCLUDE_EXT:
                     continue
                 full = Path(root) / f
-                zf.write(full, full.relative_to(source_dir))
+                zf.write(full, full.relative_to(arc_root))
     return buf.getvalue()
 
 
@@ -263,11 +264,19 @@ def _git_info(repo_dir: Path) -> dict | None:
 
 class CodeSnapshot(pl.Callback):
     """Zip the source tree + capture git info at fit start, write them to the run
-    dir, and embed them in every checkpoint for exact reproducibility."""
+    dir, and embed them in every checkpoint for exact reproducibility.
+
+    In a source checkout the whole repo is snapshotted (minus data/run dirs).
+    For an installed copy only the ``gatedloop`` package is — its parent is
+    site-packages — and the git info is the version and commit pip installed."""
 
     def __init__(self, source_dir: str | Path | None = None,
                  out_dir: str | Path | None = None, embed_in_ckpt: bool = True):
-        self.source_dir = Path(source_dir) if source_dir else _REPO_ROOT
+        self._installed = source_dir is None and paths.source_checkout() is None
+        if source_dir:
+            self.source_dir = Path(source_dir)
+        else:
+            self.source_dir = paths.source_checkout() or paths.PACKAGE_DIR
         self.out_dir = out_dir
         self.embed_in_ckpt = embed_in_ckpt
         self._git: dict | None = None
@@ -280,8 +289,13 @@ class CodeSnapshot(pl.Callback):
                    or trainer.default_root_dir)
         out.mkdir(parents=True, exist_ok=True)
 
-        self._code_bytes = _snapshot_code_bytes(self.source_dir)
-        self._git = _git_info(self.source_dir)
+        if self._installed:
+            # zip entries keep the gatedloop/ prefix, as in a checkout snapshot
+            self._code_bytes = _snapshot_code_bytes(self.source_dir, self.source_dir.parent)
+            self._git = paths.install_info()
+        else:
+            self._code_bytes = _snapshot_code_bytes(self.source_dir)
+            self._git = _git_info(self.source_dir)
 
         (out / "code_snapshot.zip").write_bytes(self._code_bytes)
         if self._git is not None:

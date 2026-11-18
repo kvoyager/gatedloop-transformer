@@ -41,9 +41,11 @@ DTYPE = np.uint16
 def resolve_config_path(path: str | Path, root: Path) -> Path:
     """A config path given on the command line: absolute, relative to the repo
     root, or relative to the package (so ``configs/data/x.yaml`` finds
-    ``gatedloop/configs/data/x.yaml``)."""
+    ``gatedloop/configs/data/x.yaml``, also in an installed copy)."""
     p = Path(path)
-    for cand in ([p] if p.is_absolute() else [root / p, root / "gatedloop" / p, p]):
+    pkg = Path(__file__).resolve().parents[1]
+    cands = [p] if p.is_absolute() else [root / p, root / "gatedloop" / p, pkg / p, pkg.parent / p, p]
+    for cand in cands:
         if cand.exists():
             return cand
     raise FileNotFoundError(f"config not found: {path} (tried repo root and gatedloop/)")
