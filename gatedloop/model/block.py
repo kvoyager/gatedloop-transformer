@@ -3,7 +3,7 @@ block.py
 ─────────────────────────────────────────────────────────────────────────────
 The decoder block — and the loop.
 
-Three variants come out of this one module, selected by two knobs — how many
+Three variants come out of this one module, selected by two settings — how many
 iterations (``loops``) and what one iteration wraps (``loop_target``):
 
   plain (loops = 1)                     looped-attention (loop_target="attn")
@@ -36,13 +36,13 @@ exists to measure that argument rather than assume it: same gate, same
 step-embed, same truncated BPTT — the only difference is one extra (gated) FFN
 application per iteration.
 
-Because the weights are *shared* across iterations, R is a pure compute knob:
+Because the weights are *shared* across iterations, R is a pure compute setting:
 parameters are unchanged (a looped model adds one scalar α per layer, plus an
 optional per-iteration bias), so ``plain_10m`` vs ``looped_10m`` is a controlled
 "does looping help?" ablation at matched parameter count.
 
-The knobs
----------
+Configuration
+-------------
   loops (R)         how many loop iterations. Resolved by the LM and passed
                     down, so every layer runs the same R in a given forward.
   loop_target       what one iteration wraps: "attn" (default) re-runs attention

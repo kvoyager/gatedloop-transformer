@@ -14,7 +14,7 @@ about what "code" means or how much of it there is.
 Why per-domain bins instead of one pre-mixed file:
   • per-domain validation for free — ``val/ppl_code_r{R}`` next to
     ``val/ppl_fineweb_r{R}`` is the experiment's headline result;
-  • the mix ratio is a training-time knob, not baked in at tokenization;
+  • the mix ratio is a training-time setting, not baked in at tokenization;
   • eval can report the per-domain table at every R from the same files.
 
 Shares are defined in TOKENS: at prep time a domain gets ``share × total``

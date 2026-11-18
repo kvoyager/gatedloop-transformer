@@ -207,7 +207,7 @@ banner, validation summaries, samples, warnings) with ANSI codes stripped.
 Every option is a Hydra override on the command line (`model.loop_count=3`,
 `optimizer.lr=4e-4`, …). The ones the paper varies:
 
-| knob | meaning |
+| parameter | meaning |
 |---|---|
 | `model.loop_count` | R at evaluation and, when sampling is off, in training. `1` = plain model. |
 | `model.loop_sample`, `loop_min`, `loop_max` | draw R ~ U{min, …, max} independently for each micro-batch during training |

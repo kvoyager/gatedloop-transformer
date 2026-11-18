@@ -2,7 +2,7 @@
 gatedloop
 ─────────────────────────────────────────────────────────────────────────────
 Decoder-only language-model pretraining on plain text, with two architectures
-that differ by exactly one knob:
+that differ by exactly one setting:
 
   • plain  — a standard pre-norm transformer (RoPE, RMSNorm, SwiGLU, QK-norm);
   • looped — the same stack, but every layer re-applies its ATTENTION sub-layer
