@@ -1,0 +1,15 @@
+# Where the prepared corpus lives (paths are relative to the repo root, not the
+# launch cwd — the train script anchors them). Produced by:
+#   python scripts/train_tokenizer.py && python scripts/prepare_data.py
+tokenizer_path: ./artifacts/tokenizer.json
+train_bin: ./artifacts/train.bin
+val_bin: ./artifacts/val.bin
+
+# Tokens of context per training block. A block is seq_len+1 tokens long (the
+# extra one is the last target after the causal shift), so model.max_seq_len
+# must be at least seq_len+1. 512 covers a whole TinyStories document; raise it
+# for long-form corpora (cost is quadratic in attention, and R× that when looped).
+seq_len: 512
+
+# Documents are written as <bos> … <eos> by scripts/prepare_data.py.
+has_bos: true

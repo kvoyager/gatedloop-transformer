@@ -1,0 +1,47 @@
+# Standalone config: pretrain the ~10M ATTENTION-LOOPED transformer.
+#   python -m gatedloop.train --config-name train_looped_10m
+#
+# Matched to train_plain_10m on parameters, batch, lr, steps and tokens — but
+# NOT on wall-clock: R=4 attention iterations cost real time (measured ~2.5×
+# the plain step at this size), and that trade is what the experiment prices.
+# Compare val/ppl at equal tokens, then read train/tok_per_s for the cost.
+defaults:
+  - model: looped_10m
+  - trainer: default
+  - optimizer: adamw
+  - data: prepared_tinystories   # ./artifacts/tinystories: tokenizer.json + tinystories_{train,val}.bin
+  - dataloader: default
+  - _self_
+
+seed: 42
+out_dir: ./runs
+run_name: looped_10m
+resume: null
+sample_every: 2000
+sample_prompt: "Once upon a time"
+
+# Test-time-compute curve, measured during training: every validation re-runs
+# the batches at these loop counts and logs val/ppl_r{R}. It shows how the
+# learned recurrence generalizes above and below the R it was trained at.
+val_loop_sweep: [1, 2, 4, 7, 10]
+
+model:
+  loop_count: 1         # R: attention iterations per layer (looped_10m default is 4)
+  loop_min: 1           # keep the sampling range pinned to R while loop_sample=false
+  loop_max: 1
+  loop_target: block
+
+dataloader:
+  batch_size: 32        # measured 12.0 GiB peak / 137k tok/s on a 16GB RTX 5080.
+                        # If that OOMs on your card, keep the comparison exact with
+                        #   dataloader.batch_size=32 trainer.accumulate_grad_batches=2
+                        # (same effective batch), or bound the backward graph with
+                        #   model.loop_backprop_k=2
+
+optimizer:
+  lr: 8.5e-4
+
+trainer:
+  max_steps: 15000      # the SAME token budget as train_plain_10m (≈491M tokens)
+  val_check_interval: 500
+  num_sanity_val_steps: 0

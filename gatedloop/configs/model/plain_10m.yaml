@@ -1,0 +1,30 @@
+# plain_10m — ~10.2M-param PLAIN TRANSFORMER (no loop): 4 pre-norm layers, each
+# running attention once. The matched-dims partner of looped_10m, so the pair is
+# a controlled "does the attention loop help?" ablation at equal parameters.
+# vocab_size / pad_id are injected at runtime from the tokenizer.
+d_model: 384
+n_heads: 6
+n_layers: 4
+ff_dim: 1024            # SwiGLU inner dim (8/3·d_model → param parity with a GELU-MLP)
+max_seq_len: 1024       # RoPE horizon — must cover data.seq_len + 1
+dropout: 0.0            # ~1 epoch over TinyStories; raise to 0.1 for many epochs
+
+# No loop: the stack runs once. (loop_gate / loop_step_embed are inert at R=1 —
+# a plain layer is built without them, so it has vanilla-transformer params.)
+loop_count: 1
+loop_min: 1
+loop_max: 1
+loop_sample: false
+loop_target: attn
+loop_gate: false
+loop_gate_init: 0.1
+loop_step_embed: false
+loop_backprop_k: null
+loop_layers: null
+loop_static_kv: false
+
+norm_type: rms          # rms | layer
+qk_norm: true
+rope_base: 10000.0
+tie_embeddings: true
+init_std: 0.02

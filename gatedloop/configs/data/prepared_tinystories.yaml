@@ -1,0 +1,24 @@
+# An ALREADY-PREPARED corpus living outside this repo — no need to re-tokenize
+# 471M tokens just to start a run. Select it with:
+#   python -m gatedloop.train --config-name train_plain_10m data=prepared_tinystories
+#
+# The .bin format is exactly what scripts/prepare_data.py writes (flat uint16,
+# documents joined by <eos>), so it drops straight in. Two things to know:
+#
+#  • vocab is 6144, not the 8192 our own tokenizer defaults to, and it carries
+#    ~23 special tokens this project never emits. They cost 23 unused embedding
+#    rows; the model shrinks to ~9.4M (embedding 6144×384) instead of ~10.2M.
+#    Both arms shift identically, so a plain-vs-looped comparison is unaffected.
+#
+#  • documents are terminated by <eos> but NOT prefixed by <bos>, so the <bos>
+#    embedding never gets a gradient. Sampling from it would prompt the model
+#    with an untrained token — hence has_bos: false below, which makes the
+#    sample callback start from the prompt text alone (scripts/generate.py takes
+#    --no-bos for the same reason).
+tokenizer_path: ./artifacts/tinystories/tokenizer.json
+train_bin: ./artifacts/tinystories/tinystories_train.bin
+val_bin: ./artifacts/tinystories/tinystories_val.bin
+seq_len: 512
+
+# Does this corpus mark document starts with <bos>? Drives the sample callback.
+has_bos: false

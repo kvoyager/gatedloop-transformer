@@ -1,0 +1,39 @@
+# looped_10m — the ~10.2M ATTENTION-LOOPED transformer. Identical dims to
+# plain_10m; every layer applies its attention sub-layer loop_count times
+# (shared weights, gated half-step residual) before its single FFN.
+#
+#   plain_10m  : 4 layers × 1 attention   →  4 attention applications
+#   looped_10m : 4 layers × 4 attention   → 16 attention applications
+#
+# Extra parameters vs plain_10m: gate scalars α per layer (4 floats; ×2 in block mode). Everything
+# else is identical, so any quality difference is the loop.
+d_model: 384
+n_heads: 6
+n_layers: 4
+ff_dim: 1024
+max_seq_len: 1024
+dropout: 0.0
+
+# THE LOOP (attention only).
+loop_count: 4           # R: attention iterations per layer
+loop_min: 4             # sampling range, used only when loop_sample=true
+loop_max: 4
+loop_sample: false      # true → draw R ~ U[loop_min,loop_max] each step, so one
+                        # model serves a RANGE of test-time budgets. For that,
+                        # try: loop_sample=true loop_min=1 loop_max=6
+loop_target: attn      # attn → FFN once, after the loop | block → attn+FFN loop together
+loop_gate: true         # α_attn (+ α_ff in block mode), learnable per write
+loop_gate_init: 0.1     # both gates start at 0.1 (the ladder configs use 0.5)
+loop_step_embed: false  # true → learnable per-iteration input bias (R·d_model
+                        # per layer, zero-init) so iterations can specialize
+loop_backprop_k: null   # truncated BPTT depth (null → full); set e.g. 2 to loop
+                        # deeper on a fixed activation-memory budget
+loop_layers: null       # null → every layer loops; e.g. [1,2] loops the middle only
+loop_static_kv: false   # true → K/V from iteration 0 are reused; later iterations
+                        # re-project only Q (cheaper per iteration)
+
+norm_type: rms
+qk_norm: true
+rope_base: 10000.0
+tie_embeddings: true
+init_std: 0.02

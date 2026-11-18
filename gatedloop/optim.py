@@ -54,7 +54,7 @@ def build_optimizer(
 
 
 def cosine_warmup_lambda(warmup_steps: int, decay_steps: int | None, floor: float = 0.1):
-    """Return an lr-lambda for ``torch.optim.lr_scheduler.LambdaLR`` (multiplies
+    """Return lr-lambda for ``torch.optim.lr_scheduler.LambdaLR`` (multiplies
     the per-group base lr). ``floor`` is the fraction of peak the cosine decays
     to (and holds at) once ``decay_steps`` is reached."""
     warmup_steps = max(0, int(warmup_steps))

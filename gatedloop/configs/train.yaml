@@ -1,0 +1,32 @@
+defaults:
+  - model: plain_10m
+  - trainer: default
+  - optimizer: adamw
+  - data: text
+  - dataloader: default
+  - _self_
+
+seed: 42
+out_dir: ./runs
+run_name: pretrain
+resume: null           # path to a checkpoint to resume from
+sample_every: 2000     # SampleTextCallback cadence in steps (0 / null disables)
+sample_prompt: "Once upon a time"
+
+# Test-time-compute sweep at each validation: re-run the val batches at these
+# loop counts and log val/ppl_r{R}. Only meaningful for a looped model — leave
+# empty for plain runs. e.g. [1, 2, 4, 6]
+val_loop_sweep: []
+
+# Per-iteration loop convergence (looped models only): on the first n_batches
+# validation batches, record the relative step ‖x_{i}−x_{i−1}‖/‖x_{i−1}‖ and
+# 1−cos per token for every looping block → val/conv/* scalars and the full
+# arrays in <run dir>/convergence/step*.npz. 0 disables.
+val_convergence:
+  n_batches: 2
+  loops: null          # R for the trace; null → max(model.loop_count, val_loop_sweep)
+  output_kl: true      # + successive-output KL(p_i‖p_{i−1}) and per-pass target NLL
+
+# Console output is mirrored into <run dir>/<log_file> (ANSI stripped, progress
+# bar excluded). null disables the tee.
+log_file: train.log

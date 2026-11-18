@@ -1,0 +1,32 @@
+# Standalone config: pretrain the ~10M PLAIN transformer (the baseline arm).
+#   python -m gatedloop.train --config-name train_plain_10m
+#
+# Deliberately identical to train_looped_10m in every respect except the model:
+# same batch, same lr, same steps, same data — so the two val/ppl curves are
+# directly comparable and the only free variable is the attention loop.
+defaults:
+  - model: plain_10m
+  - trainer: default
+  - optimizer: adamw
+  - data: text
+  - dataloader: default
+  - _self_
+
+seed: 42
+out_dir: ./runs
+run_name: plain_10m
+resume: null
+sample_every: 2000
+sample_prompt: "Once upon a time"
+val_loop_sweep: []      # nothing to sweep: a plain model has one compute budget
+
+dataloader:
+  batch_size: 64        # measured 6.2 GiB peak / 349k tok/s on a 16GB RTX 5080
+
+optimizer:
+  lr: 8.5e-4            # ~sqrt-scaled from 6e-4 @ batch 32 (linear rule would be 1.2e-3)
+
+trainer:
+  max_steps: 15000      # 15000 × 64 × 512 ≈ 491M tokens ≈ one epoch of TinyStories
+  val_check_interval: 500
+  num_sanity_val_steps: 0
