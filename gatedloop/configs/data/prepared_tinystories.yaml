@@ -1,5 +1,6 @@
-# An ALREADY-PREPARED corpus living outside this repo — no need to re-tokenize
-# 471M tokens just to start a run. Select it with:
+# An ALREADY-PREPARED TinyStories corpus — no need to re-tokenize 471M tokens
+# just to start a run. Put its three files in artifacts/tinystories/ (or point
+# data.tokenizer_path / data.train_bin / data.val_bin at them) and select it with:
 #   python -m gatedloop.train --config-name train_plain_10m data=prepared_tinystories
 #
 # The .bin format is exactly what scripts/prepare_data.py writes (flat uint16,

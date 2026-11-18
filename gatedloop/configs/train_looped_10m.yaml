@@ -11,7 +11,15 @@ defaults:
   - optimizer: adamw
   - data: prepared_tinystories   # ./artifacts/tinystories: tokenizer.json + tinystories_{train,val}.bin
   - dataloader: default
+  - override hydra/job_logging: console
   - _self_
+
+# Everything a run records goes into <out_dir>/<run_name>/version_N. Keep Hydra
+# from also creating outputs/<date>/<time>/ with a second log and config copy.
+hydra:
+  run:
+    dir: .
+  output_subdir: null
 
 seed: 42
 out_dir: ./runs

@@ -1,0 +1,15 @@
+# Python logging for training runs: console only, no log file of Hydra's own.
+# The handler writes to the *current* sys.stdout, so once train.py starts
+# mirroring the console into <run dir>/train.log, log messages land there too.
+version: 1
+formatters:
+  simple:
+    format: '%(message)s'
+handlers:
+  console:
+    class: gatedloop.training.logfile.StdoutHandler
+    formatter: simple
+root:
+  level: INFO
+  handlers: [console]
+disable_existing_loggers: false

@@ -20,7 +20,15 @@ defaults:
   - sweep@_global_: ladder     # val_loop_sweep (configs/sweep/)
   - memory@_global_: default   # micro-batch × accumulation (configs/memory/)
   - model: plain_6
+  - override hydra/job_logging: console
   - _self_
+
+# Everything a run records goes into <out_dir>/<run_name>/version_N. Keep Hydra
+# from also creating outputs/<date>/<time>/ with a second log and config copy.
+hydra:
+  run:
+    dir: .
+  output_subdir: null
 
 seed: 42
 out_dir: ./runs_ladder

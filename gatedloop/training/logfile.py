@@ -21,6 +21,7 @@ Two details make the file readable rather than a dump of terminal noise:
 
 from __future__ import annotations
 
+import logging
 import re
 import sys
 from pathlib import Path
@@ -58,6 +59,26 @@ class _Tee:
     @property
     def encoding(self) -> str:
         return getattr(self._stream, "encoding", "utf-8")
+
+
+class StdoutHandler(logging.StreamHandler):
+    """Logging handler that writes to whatever ``sys.stdout`` is at emit time.
+
+    A plain ``StreamHandler(sys.stdout)`` binds the stream when logging is
+    configured, i.e. before ``ConsoleLog`` swaps in its tee, so log messages
+    would reach the terminal but not ``train.log``. Used by the Hydra logging
+    preset ``configs/hydra/job_logging/console.yaml``."""
+
+    def __init__(self) -> None:
+        super().__init__(sys.stdout)
+
+    @property
+    def stream(self) -> TextIO:            # type: ignore[override]
+        return sys.stdout
+
+    @stream.setter
+    def stream(self, value: TextIO) -> None:
+        pass                               # always follow sys.stdout
 
 
 class ConsoleLog:

@@ -20,10 +20,10 @@ from __future__ import annotations
 import os
 
 os.environ.setdefault("KMP_DUPLICATE_LIB_OK", "TRUE")
-# Windows torch builds ship no flash-attention kernel, so SDPA falls back to the
-# mem-efficient backend, whose activation memory grows quickly with batch — and
-# the looped model pays that R times over. Expandable segments curb fragmentation
-# (ignored, with a warning, on platforms that don't support it — filtered below).
+# Expandable segments curb CUDA memory fragmentation, which the looped model
+# (activation memory paid R times over) is prone to. PyTorch supports them on
+# Linux only; on Windows and macOS the setting is ignored with a warning, which
+# is filtered below.
 os.environ.setdefault("PYTORCH_CUDA_ALLOC_CONF", "expandable_segments:True")
 
 import logging

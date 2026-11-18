@@ -59,8 +59,23 @@ observable.
 ## Install
 
 ```bash
+git clone https://github.com/kvoyager/gatedloop-transformer.git
+cd gatedloop-transformer
 pip install -e .          # or: pip install -r requirements.txt
 ```
+
+Clone the repo for anything beyond training: the data preparation, evaluation
+and analysis tools in `scripts/` and the tests in `tests/` are not part of the
+installed package. Installing straight from GitHub gives the package and the
+`gatedloop-train` command only:
+
+```bash
+pip install "gatedloop-transformer @ git+https://github.com/kvoyager/gatedloop-transformer.git"
+```
+
+Relative paths in the configs (`./artifacts/...`, `./runs_ladder`) resolve
+against the repo root in a clone, and against the directory you launch from
+for an installed copy. Set `GATEDLOOP_ROOT` to anchor them elsewhere.
 
 Tested on Python 3.13, torch 2.11 (CUDA 12.8), Lightning 2.6, one RTX 5080
 (16 GB). All paper runs fit in 16 GB with the memory presets in
@@ -80,7 +95,8 @@ pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
 
 The corpus is an 80 / 10 / 10 token mixture of FineWeb-Edu (sample-10BT),
 Python from `codeparrot-clean`, and FineMath-4+, described in one file so that
-tokenizer, corpus and training shares cannot drift:
+tokenizer, corpus and training shares cannot drift. The prep scripts live in
+`scripts/`, so run them from a clone of the repo:
 
 ```bash
 python scripts/train_tokenizer.py --mix gatedloop/configs/data/mix_fwe_code_math.yaml   # BPE 32k on a proportional sample
@@ -241,6 +257,7 @@ gatedloop/
   tokenizer.py            byte-level BPE (<pad>/<bos>/<eos>)
   optim.py                AdamW with decoupled weight-decay groups (gates excluded) + cosine-warmup schedule
   checkpoint.py           rebuild a bare model from a Lightning .ckpt
+  paths.py                where relative config paths resolve (clone vs installed copy)
   model/
     layers.py             RMSNorm, SwiGLU, RoPE, causal SDPA attention with QK-norm
     block.py              the looped block: ungated pass 1, gated passes 2…R, static KV, LoopTrace
@@ -252,7 +269,7 @@ gatedloop/
   training/
     lit_module.py         LightningModule: loss, schedule, loop sweep at validation
     callbacks.py          convergence trace, gate logging, throughput, samples, run control, CSV, code snapshot
-  train.py                Hydra entry point (default config: train_mix)
+  train.py                Hydra entry point (default config: train; the paper recipe is --config-name train_mix)
   configs/
     train_mix.yaml        the shared recipe
     model/                the thirteen paper configs + plain_tiny / looped_tiny for tests
@@ -267,7 +284,8 @@ runs_ladder/              run directories + analysis/
 ```bash
 python tests/test_model.py        # parity, causality, RoPE, truncated BPTT, loop trace, gate init
 python tests/test_data.py         # mixture bins, MixtureDataset, per-domain validation
-python tests/test_callbacks.py    # PAUSE / STOP run control
+python tests/test_callbacks.py    # PAUSE / STOP run control, one text sample per step
+python tests/test_paths.py        # path resolution in a clone vs an installed copy
 python tests/smoke_pipeline.py    # trains plain_tiny and looped_tiny end-to-end on synthetic data
 ```
 
