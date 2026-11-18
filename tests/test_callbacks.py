@@ -10,6 +10,9 @@ metrics or the throughput window in a bad state. CPU, synthetic data, ~10 s.
 
 from __future__ import annotations
 
+import contextlib
+import io
+import re
 import sys
 import tempfile
 import threading
@@ -24,7 +27,9 @@ from torch.utils.data import DataLoader, Dataset
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from gatedloop.training.callbacks import ThroughputCallback, TrainControlCallback   # noqa: E402
+from gatedloop.training.callbacks import (                                          # noqa: E402
+    SampleTextCallback, ThroughputCallback, TrainControlCallback,
+)
 from gatedloop.training.lit_module import LitPretrain                                # noqa: E402
 
 _TMP = Path(tempfile.mkdtemp(prefix="lt_test_cb_"))
@@ -120,8 +125,37 @@ def test_throughput_window_reset():
     print("  ThroughputCallback.reset_window — OK")
 
 
+class _FakeTok:
+    """Just enough tokenizer for SampleTextCallback (ids inside MODEL's vocab)."""
+    bos_id, eos_id = 1, 2
+
+    def encode(self, s):
+        return [3, 4]
+
+    def decode(self, ids):
+        return " ".join(map(str, ids))
+
+
+def test_sample_once_per_step_with_accumulation():
+    # global_step stays at 2, 4, 6 for 4 micro-batches each under accumulation;
+    # a sample must still be printed once per optimizer step, not once per batch.
+    trainer = pl.Trainer(accelerator="cpu", max_steps=6, accumulate_grad_batches=4,
+                         logger=False, enable_checkpointing=False, enable_progress_bar=False,
+                         enable_model_summary=False, num_sanity_val_steps=0, limit_val_batches=0,
+                         callbacks=[SampleTextCallback(_FakeTok(), every_n_steps=2, max_new_tokens=4,
+                                                       prompt="x")])
+    lit = LitPretrain(model=MODEL, warmup_steps=1, max_steps=6)
+    out = io.StringIO()
+    with contextlib.redirect_stdout(out):
+        trainer.fit(lit, DataLoader(RandDS(), batch_size=4))
+    steps = [int(m) for m in re.findall(r"\[sample @ step (\d+)\]", out.getvalue())]
+    assert steps == [2, 4, 6], f"expected one sample at steps 2, 4, 6, got {steps}"
+    print(f"  SampleTextCallback: one sample per optimizer step under accumulation {steps} — OK")
+
+
 def main():
-    for fn in [test_pause_file_holds_and_resumes, test_stop_file_ends_run, test_throughput_window_reset]:
+    for fn in [test_pause_file_holds_and_resumes, test_stop_file_ends_run, test_throughput_window_reset,
+               test_sample_once_per_step_with_accumulation]:
         print(f"\n{fn.__name__}")
         fn()
     print("\n✅ all callback tests passed")

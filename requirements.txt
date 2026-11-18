@@ -1,4 +1,26 @@
 # Core training stack (versions are floors).
+#
+# Exact versions the experiments were run with (conda base env, Windows 11,
+# Python 3.13.9, NVIDIA RTX 5080 16 GB, driver 610.88):
+#   torch              2.11.0+cu128   (CUDA 12.8, cuDNN 9.19)
+#   pytorch-lightning  2.6.1
+#   hydra-core         1.3.2
+#   omegaconf          2.3.0
+#   tokenizers         0.22.2
+#   datasets           4.8.4
+#   numpy              2.3.5
+#   tensorboard        2.20.0
+#   rich               15.0.0
+#   pytest             8.4.2          (dev extra)
+#
+# Also verified on 2026-11-18 from a fresh install of this repo from GitHub
+# (Python 3.12.16; tests + smoke pipeline + a 20-step train_mix run):
+#   torch 2.11.0+cu128, pytorch-lightning 2.6.1 and 2.6.6, hydra-core 1.3.8,
+#   omegaconf 2.3.1, tokenizers 0.23.3, datasets 5.2.0, numpy 2.5.5,
+#   tensorboard 2.21.0, rich 15.0.0, pytest 9.2.0
+#
+# On Windows, pip's default torch wheel is CPU-only. Install the CUDA build first:
+#   pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
 torch>=2.3
 pytorch-lightning>=2.2
 hydra-core>=1.3

@@ -189,11 +189,16 @@ class SampleTextCallback(pl.Callback):
         # with it (data.has_bos) — otherwise its embedding never sees a gradient
         # and sampling from it just feeds the model an untrained token.
         self.add_bos = bool(add_bos)
+        self._last_step = -1
 
     def on_train_batch_end(self, trainer, pl_module, outputs, batch, batch_idx):
         step = trainer.global_step
-        if self.every <= 0 or step == 0 or step % self.every != 0:
+        # This hook runs once per micro-batch, while global_step counts optimizer
+        # steps: with accumulate_grad_batches=N it stays at a multiple of `every`
+        # for N consecutive micro-batches. Sample only on the first of them.
+        if self.every <= 0 or step == 0 or step % self.every != 0 or step == self._last_step:
             return
+        self._last_step = step
         ids = ([self.tok.bos_id] if self.add_bos else []) + \
               (self.tok.encode(self.prompt) if self.prompt else [])
         if not ids:                                  # no prompt and no <bos>

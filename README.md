@@ -64,7 +64,15 @@ pip install -e .          # or: pip install -r requirements.txt
 
 Tested on Python 3.13, torch 2.11 (CUDA 12.8), Lightning 2.6, one RTX 5080
 (16 GB). All paper runs fit in 16 GB with the memory presets in
-`gatedloop/configs/memory/`.
+`gatedloop/configs/memory/`. The exact package versions used for the
+experiments are listed at the top of `requirements.txt`.
+
+On Windows, `pip install torch` gives a CPU-only build, so install the CUDA
+build first:
+
+```bash
+pip install torch==2.11.0 --index-url https://download.pytorch.org/whl/cu128
+```
 
 ---
 
