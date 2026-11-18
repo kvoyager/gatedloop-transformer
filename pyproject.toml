@@ -1,5 +1,5 @@
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -7,6 +7,8 @@ name = "gatedloop-transformer"
 dynamic = ["version"]
 description = "Decoder-only LM pretraining: a plain transformer and an attention-looped variant that re-applies each layer's attention R times."
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.10"
 dependencies = [
     "torch>=2.3",
