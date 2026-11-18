@@ -1,0 +1,40 @@
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "gatedloop-transformer"
+dynamic = ["version"]
+description = "Decoder-only LM pretraining: a plain transformer and an attention-looped variant that re-applies each layer's attention R times."
+readme = "README.md"
+requires-python = ">=3.10"
+dependencies = [
+    "torch>=2.3",
+    "pytorch-lightning>=2.2",
+    "hydra-core>=1.3",
+    "omegaconf>=2.3",
+    "tokenizers>=0.15",
+    "datasets>=2.18",
+    "numpy>=1.24",
+    "tensorboard>=2.15",
+    "rich>=13.0",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=7"]
+
+[project.scripts]
+gatedloop-train = "gatedloop.train:main"
+
+[tool.setuptools.dynamic]
+version = { attr = "gatedloop.__version__" }
+
+[tool.setuptools.packages.find]
+include = ["gatedloop*"]
+exclude = ["gatedloop.outputs*"]
+
+[tool.setuptools.package-data]
+gatedloop = ["configs/**/*.yaml"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

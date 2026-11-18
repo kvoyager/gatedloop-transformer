@@ -1,0 +1,5 @@
+# @package _global_
+# Sampled-R runs (trained on R ~ U[1,6]): the whole trained range plus 8, one
+# step past it — a model that still improves at 8 has learned an iteration, one
+# that degrades sharply has learned six depths.
+val_loop_sweep: [1, 2, 3, 4, 5, 6, 8]

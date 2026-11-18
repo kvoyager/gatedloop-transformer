@@ -1,0 +1,20 @@
+# batch_size 32 is a safe default for the 10M tier on a 16GB card. The looped
+# model re-runs attention R times per layer, so its activation memory is
+# noticeably higher than the plain model's at the same batch — if you raise the
+# batch for a plain run, do NOT assume the looped run fits at the same value
+# (or set model.loop_backprop_k to bound the backward graph).
+batch_size: 32
+num_workers: 8
+prefetch_factor: 4
+pin_memory: true
+persistent_workers: true
+
+# Validation loader overrides. Val runs only every val_check_interval, so it
+# rarely needs the train workers (and persistent ones would sit idle between
+# validations). Any field left null inherits the train value above.
+val:
+  num_workers: 0
+  batch_size: null         # null → inherit train batch_size
+  prefetch_factor: null
+  pin_memory: null
+  persistent_workers: null

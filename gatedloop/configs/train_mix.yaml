@@ -1,0 +1,52 @@
+# The mixture recipe shared by every rung of the ladder. Pick the rung with
+# model=<name>; everything else — data, batch, lr, steps, tokens, validation —
+# is identical across runs so the rungs are directly comparable.
+#
+#   python -m gatedloop.train --config-name train_mix model=plain_6
+#   python -m gatedloop.train --config-name train_mix model=looped_6
+#   scripts\run_ladder.cmd                                   # all five, in order
+#
+# Identical optimizer settings on purpose: plain_12 might like a slightly lower
+# lr on its own, but tuning per rung breaks the controlled comparison — if it
+# misbehaves, lower lr for the WHOLE ladder.
+defaults:
+  - trainer: default
+  - optimizer: adamw
+  - data: mix_fwe_code_math
+  - dataloader: default
+  # The two groups a model config may override (`override /sweep@_global_: …`,
+  # `override /memory@_global_: …` in the *_rs files) must sit AFTER the groups
+  # whose keys they set (dataloader / trainer) and BEFORE `model`.
+  - sweep@_global_: ladder     # val_loop_sweep (configs/sweep/)
+  - memory@_global_: default   # micro-batch × accumulation (configs/memory/)
+  - model: plain_6
+  - _self_
+
+seed: 42
+out_dir: ./runs_ladder
+run_name: null          # null → the model= choice, so each rung lands in runs_ladder/<model>/version_N
+resume: null
+log_file: train.log     # console mirror in <run dir>; null disables
+sample_every: 5000
+sample_prompt: "def fibonacci(n):"
+
+# Test-time-compute curve per domain (val/ppl_<domain>_r{R}) comes from the
+# `sweep` group above (configs/sweep/): `ladder` for fixed-R rungs, `sampled`
+# for the *_rs configs, which select it themselves. Plain models skip the sweep.
+val_convergence:
+  n_batches: 2
+  loops: null
+  output_kl: true       # successive-output KL + per-pass target NLL in the trace
+
+# dataloader.batch_size and trainer.accumulate_grad_batches come from the `memory`
+# group above: `default` = 8 × 4 (plain_12 / looped_6 at R=2 peak ~11 GiB on 16 GB),
+# `half` = 4 × 8 for runs that overflow at 8. Both are 32,768 tokens per step.
+
+optimizer:
+  lr: 6.0e-4
+  warmup_steps: 2000
+
+trainer:
+  max_steps: 61000        # × 32,768 tokens/step ≈ 2.0B tokens — the prep budget
+  val_check_interval: 2000
+  num_sanity_val_steps: 0

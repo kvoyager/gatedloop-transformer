@@ -1,0 +1,9 @@
+# @package _global_
+# Micro-batch / accumulation for the ladder recipe. 8 × 4 × 1024 = 32,768 tokens
+# per optimizer step; plain_12 and looped_6 (R=2) peak at ~11 GiB on a 16 GB card.
+dataloader:
+  batch_size: 8
+  val:
+    batch_size: 8
+trainer:
+  accumulate_grad_batches: 4

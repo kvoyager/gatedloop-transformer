@@ -1,0 +1,11 @@
+# @package _global_
+# Half the micro-batch, double the accumulation — the SAME 32,768 tokens per
+# optimizer step, so budget, lr schedule and validation cadence are unchanged.
+# For runs whose activations do not fit at 8: a sampled-R step at R=6 on a
+# 6-layer model holds ~3× the activations of the fixed R=2 rung.
+dataloader:
+  batch_size: 4
+  val:
+    batch_size: 4
+trainer:
+  accumulate_grad_batches: 8

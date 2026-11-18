@@ -1,0 +1,53 @@
+# looped_3_skv_rs — looped_3_skv (static K/V) with SAMPLED R: each training step draws R ~ U[1, 6]
+# instead of the fixed R=2, so one model is trained to work at every budget in
+# that range. Same parameters as looped_3_skv. Eval / headline metrics still use R=2
+# (loop_count) so val/ppl is comparable with the fixed-R rung; the sweep
+# val/ppl_<domain>_r{R} shows what sampling bought at R=1 and above 2. The
+# looped/plain FLOP match holds only in expectation (E[R]=3.5 → ~1.75× looped_3_skv's
+# per-step compute), so compare on tokens, not wall-clock.
+# ── the ladder ───────────────────────────────────────────────────────────────
+# Five configs at ONE width (d=768, 12 heads, SwiGLU ff=2048, ≈7.1M params/layer
+# + a 25.2M tied embedding at vocab 32768). Only depth, looping and R differ:
+#
+#   name      layers  R   params   non-emb   attn/FFN apps (block)  role
+#   plain_3      3    1    46M      21M        3 /  3               reference for looped_3
+#   plain_6      6    1    68M      42M        6 /  6               reference for looped_6
+#   plain_12    12    1   110M      85M       12 / 12               upper reference: 2× non-emb params
+#   looped_3     3    2    46M+α    21M        6 /  6               plain_6 compute at plain_3 params
+#   looped_6     6    2    68M+α    42M       12 / 12               plain_12 compute at plain_6 params
+#
+# R=2 makes the rungs line up: looped_3 ≡ plain_6 and looped_6 ≡ plain_12 in
+# attention (and, with loop_target=block, FFN) applications. Train all five with
+# --config-name train_mix model=<name>; the looped rows also sweep R at eval.
+
+# Selects the validation sweep for a sampled-R run: the trained range 1–6 plus 8
+# (configs/sweep/sampled.yaml) instead of train_mix's default `ladder` sweep.
+defaults:
+  - override /sweep@_global_: sampled
+
+d_model: 768
+n_heads: 12
+n_layers: 3
+ff_dim: 2048            # SwiGLU inner dim (8/3·d_model → param parity with a GELU-MLP)
+max_seq_len: 2048       # RoPE horizon — must cover data.seq_len + 1
+dropout: 0.0
+
+# THE LOOP: every layer runs attention+FFN R times (shared weights, gated by
+# α_attn / α_ff). R is SAMPLED per step; eval sweeps R via val_loop_sweep.
+loop_count: 2           # R at eval and for the headline val/ppl (matches the fixed-R rung)
+loop_min: 1             # training: R ~ U[loop_min, loop_max] each step
+loop_max: 6
+loop_sample: true
+loop_target: block      # attn+FFN both inside each iteration → FLOPs match plain_6
+loop_gate: true         # α_attn (+ α_ff in block mode), learnable per write
+loop_gate_init: 0.5     # both gates start at 0.5 (half-step writes); the 10M configs use 0.1
+loop_step_embed: false
+loop_backprop_k: null   # full gradients through both iterations
+loop_layers: null
+loop_static_kv: true    # K/V from iteration 0 are reused; later iterations re-project only Q
+
+norm_type: rms
+qk_norm: true
+rope_base: 10000.0
+tie_embeddings: true
+init_std: 0.02

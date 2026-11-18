@@ -1,0 +1,33 @@
+# Whitelist: ignore everything at the repo root, then re-include only what the
+# package needs. Data, checkpoints, run dirs, IDE and build output stay local.
+/*
+!/.gitignore
+!/README.md
+!/LICENSE
+!/pyproject.toml
+!/requirements.txt
+!/gatedloop/
+!/scripts/
+!/tests/
+
+# IDE / tool caches (any depth)
+.idea/
+.vscode/
+.pytest_cache/
+*.egg-info/
+build/
+.venv/
+
+# Paper drafts
+paper/
+
+# Inside the kept folders
+__pycache__/
+*.py[cod]
+gatedloop/outputs/
+outputs/
+multirun/
+*.bin
+*.ckpt
+*.npz
+*.log

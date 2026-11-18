@@ -1,0 +1,9 @@
+lr: 6.0e-4
+weight_decay: 0.1     # applied to 2-D weights only (not norms / embeddings / α)
+beta1: 0.9
+beta2: 0.95           # pretraining recipe (faster second-moment tracking)
+warmup_steps: 1000    # looped models benefit from the full warmup — the shared
+                      # attention weights take R gradient contributions per step
+lr_decay_steps: null  # null → follow trainer.max_steps; pin to the original value
+                      # when resuming for longer, to keep the lr curve continuous
+lr_floor: 0.1         # cosine decays to (and holds) this fraction of peak

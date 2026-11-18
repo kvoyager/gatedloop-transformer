@@ -1,0 +1,46 @@
+# looped_6_skv — looped_6 with STATIC K/V: iteration 0 projects K and V once per
+# layer, later iterations re-project only Q from the updated residual and attend
+# over the stored K/V. Same parameters as looped_6; the second iteration costs
+# one projection + attention instead of three projections + attention. The
+# ablation for "does the loop need fresh keys, or just fresh queries?" — compare
+# with looped_6 (dynamic K/V) at matched R.
+# ── the ladder ───────────────────────────────────────────────────────────────
+# Five configs at ONE width (d=768, 12 heads, SwiGLU ff=2048, ≈7.1M params/layer
+# + a 25.2M tied embedding at vocab 32768). Only depth, looping and R differ:
+#
+#   name      layers  R   params   non-emb   attn/FFN apps (block)  role
+#   plain_3      3    1    46M      21M        3 /  3               reference for looped_3
+#   plain_6      6    1    68M      42M        6 /  6               reference for looped_6
+#   plain_12    12    1   110M      85M       12 / 12               upper reference: 2× non-emb params
+#   looped_3     3    2    46M+α    21M        6 /  6               plain_6 compute at plain_3 params
+#   looped_6     6    2    68M+α    42M       12 / 12               plain_12 compute at plain_6 params
+#
+# R=2 makes the rungs line up: looped_3 ≡ plain_6 and looped_6 ≡ plain_12 in
+# attention (and, with loop_target=block, FFN) applications. Train all five with
+# --config-name train_mix model=<name>; the looped rows also sweep R at eval.
+d_model: 768
+n_heads: 12
+n_layers: 6
+ff_dim: 2048            # SwiGLU inner dim (8/3·d_model → param parity with a GELU-MLP)
+max_seq_len: 2048       # RoPE horizon — must cover data.seq_len + 1
+dropout: 0.0
+
+# THE LOOP: every layer runs attention+FFN R times (shared weights, gated by
+# α_attn / α_ff). R=2 at train; eval sweeps R via val_loop_sweep.
+loop_count: 2
+loop_min: 2
+loop_max: 2
+loop_sample: false
+loop_target: block      # attn+FFN both inside each iteration → FLOPs match plain_12
+loop_gate: true         # α_attn (+ α_ff in block mode), learnable per write
+loop_gate_init: 0.5     # both gates start at 0.5 (half-step writes); the 10M configs use 0.1
+loop_step_embed: false
+loop_backprop_k: null   # full gradients through both iterations
+loop_layers: null
+loop_static_kv: true    # K/V from iteration 0 are reused; later iterations re-project only Q
+
+norm_type: rms
+qk_norm: true
+rope_base: 10000.0
+tie_embeddings: true
+init_std: 0.02

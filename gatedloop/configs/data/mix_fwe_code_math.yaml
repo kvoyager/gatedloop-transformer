@@ -1,0 +1,58 @@
+# Three-domain pretraining mixture: general web text + Python + math text.
+#
+#   domain    source                                   share   why
+#   fineweb   FineWeb-Edu (10B-token sample)           80%     clean, well-understood scaling;
+#                                                              ppl here is the "nothing broke" check
+#   code      codeparrot-clean (Python, deduplicated)  10%     bracket matching / variable tracking —
+#                                                              long-range structure where extra passes
+#                                                              plausibly help
+#   math      FineMath (4+ quality bucket)             10%     same reason, for math-flavoured text
+#
+# ONE file drives everything: scripts/train_tokenizer.py --mix trains the BPE on
+# a proportional sample, scripts/prepare_mix.py writes <bin_dir>/<domain>_{train,val}.bin
+# from the same rows, and a training run mixes the bins by `share` while
+# validating on each domain separately (val/ppl_<domain>[_r{R}]).
+#
+#   python scripts/train_tokenizer.py --mix gatedloop/configs/data/mix_fwe_code_math.yaml
+#   python scripts/prepare_mix.py     --data gatedloop/configs/data/mix_fwe_code_math.yaml
+#   python -m gatedloop.train --config-name train_mix model=looped_6
+#
+# Shares are in TOKENS, at prep time and at train time alike. Swap a source by
+# editing its row; `filter: code` applies the source-file junk filter
+# (see data/mixture.py), `text` a minimum-length filter.
+tokenizer_path: ./artifacts/mix/tokenizer.json
+bin_dir: ./artifacts/mix          # <domain>_train.bin / <domain>_val.bin live here
+seq_len: 1024                     # code and math documents are long; the 10M runs used 512
+has_bos: true                     # prepare_mix.py writes <bos> … <eos>
+
+domains:
+  fineweb:
+    share: 0.8
+    dataset: HuggingFaceFW/fineweb-edu
+    config: sample-10BT
+    split: train
+    column: text
+    filter: text
+  code:
+    share: 0.1
+    dataset: codeparrot/codeparrot-clean   # ungated Python-only; bigcode/the-stack-smol
+    config: null                           # (config data/python, column content) is a
+    split: train                           # ~10k-file quick-test alternative
+    column: content
+    filter: code
+  math:
+    share: 0.1
+    dataset: HuggingFaceTB/finemath
+    config: finemath-4plus                 # or open-web-math/open-web-math, column text
+    split: train
+    column: text
+    filter: text
+
+# Prep-time budgets (scripts/prepare_mix.py; override with --total-tokens etc.).
+prep:
+  total_tokens: 2.0e9     # train tokens across all domains → 1.6B / 0.2B / 0.2B
+  val_tokens: 1.0e6       # per domain, a disjoint slice of the same stream. Kept small:
+                          # every validation runs (1 + |val_loop_sweep|) passes × 3 domains
+  max_doc_tokens: 16384   # cut longer documents so one giant file cannot dominate a stretch
+  vocab_size: 32768       # scripts/train_tokenizer.py --mix default (uint16 bins allow ≤ 65536)
+  tokenizer_docs: 300000  # documents in the proportional tokenizer-training sample
