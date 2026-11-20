@@ -199,6 +199,15 @@ python scripts/generate.py --ckpt runs_ladder/looped_6_r234/version_0/checkpoint
     --prompt "def fibonacci(n):" -n 4 --loops 3
 ```
 
+For release, checkpoints are stripped to the weights: `<stem>.safetensors`
+(model state_dict only, no optimizer state, no pickled code) plus `<stem>.json`
+(model config and training hyper-parameters), written next to the `.ckpt`.
+Every script above accepts the `.safetensors` file in place of `--ckpt`.
+
+```bash
+python -m gatedloop.tools.export_weights runs_ladder/looped_6/version_0/checkpoints/step060000.ckpt
+```
+
 The validation loss reported in the paper is `val/loss`: the mean of the three
 per-domain losses weighted by the training shares. `val/loss_<domain>_r{R}` is
 the loss-versus-R curve per domain.
@@ -256,7 +265,7 @@ unchanged and the bottom of the stack keeps its gradient path
 gatedloop/
   tokenizer.py            byte-level BPE (<pad>/<bos>/<eos>)
   optim.py                AdamW with decoupled weight-decay groups (gates excluded) + cosine-warmup schedule
-  checkpoint.py           rebuild a bare model from a Lightning .ckpt
+  checkpoint.py           rebuild a bare model from a Lightning .ckpt or an exported .safetensors
   paths.py                where relative config paths resolve (clone vs installed copy)
   model/
     layers.py             RMSNorm, SwiGLU, RoPE, causal SDPA attention with QK-norm
@@ -272,12 +281,13 @@ gatedloop/
   train.py                Hydra entry point (default config: train; the paper recipe is --config-name train_mix)
   tools/
     trace_ckpt.py         offline convergence trace (incl. output KL) from a checkpoint
+    export_weights.py     .ckpt → .safetensors + .json (weights and config only) for release
   configs/
     train_mix.yaml        the shared recipe
     model/                the thirteen paper configs + plain_tiny / looped_tiny for tests
     sweep/  memory/  trainer/  optimizer/  dataloader/  data/
 scripts/                  train_tokenizer · prepare_mix · prepare_data · eval_ppl · generate
-tests/                    test_model.py · test_data.py · test_callbacks.py · test_paths.py (unit) · smoke_pipeline.py (end-to-end)
+tests/                    test_model.py · test_data.py · test_callbacks.py · test_paths.py · test_export.py (unit) · smoke_pipeline.py (end-to-end)
 runs_ladder/              run directories + analysis/
 ```
 
@@ -288,6 +298,7 @@ python tests/test_model.py        # parity, causality, RoPE, truncated BPTT, loo
 python tests/test_data.py         # mixture bins, MixtureDataset, per-domain validation
 python tests/test_callbacks.py    # PAUSE / STOP run control, one text sample per step
 python tests/test_paths.py        # path resolution in a clone vs an installed copy
+python tests/test_export.py       # .ckpt → .safetensors export reloads to identical outputs
 python tests/smoke_pipeline.py    # trains plain_tiny and looped_tiny end-to-end on synthetic data
 ```
 

@@ -24,6 +24,7 @@ against the repo root in a checkout, else the launch directory or GATEDLOOP_ROOT
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -57,7 +58,10 @@ def main():
     model.to(args.device).eval()
     if not model.is_looped:
         sys.exit("plain checkpoint — nothing to trace")
-    step = int(torch.load(args.ckpt, map_location="cpu", weights_only=False).get("global_step", 0))
+    if args.ckpt.endswith(".safetensors"):
+        step = int(json.loads(Path(args.ckpt).with_suffix(".json").read_text())["global_step"])
+    else:
+        step = int(torch.load(args.ckpt, map_location="cpu", weights_only=False).get("global_step", 0))
 
     from omegaconf import OmegaConf
     cfg = OmegaConf.load(str(resolve_config_path(args.data, paths.project_root())))

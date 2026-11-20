@@ -11,6 +11,7 @@
 #   numpy              2.3.5
 #   tensorboard        2.20.0
 #   rich               15.0.0
+#   safetensors        0.7.0          (weight export only)
 #   pytest             8.4.2          (dev extra)
 #
 # Also verified on 2026-11-18 from a fresh install of this repo from GitHub
@@ -30,5 +31,6 @@ datasets>=2.18          # corpus download (TinyStories, wikitext, ...)
 numpy>=1.24
 tensorboard>=2.15
 rich>=13.0              # progress bar
+safetensors>=0.4        # released weights (gatedloop.tools.export_weights)
 
 # NOTE: no torchtune — RoPE is implemented in-repo (model/layers.py).
