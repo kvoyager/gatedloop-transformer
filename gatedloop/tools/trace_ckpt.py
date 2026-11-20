@@ -1,12 +1,12 @@
 """
-scripts/trace_ckpt.py
+gatedloop/tools/trace_ckpt.py
 ─────────────────────────────────────────────────────────────────────────────
 Offline convergence trace for an existing checkpoint: the same arrays the
 training-time callback saves (rel, one_minus_cos, and — new — kl, nll), so runs
 that were trained before `val_convergence.output_kl` existed get the
 successive-output KL without retraining.
 
-  python scripts/trace_ckpt.py --ckpt runs_ladder/looped_6/version_0/checkpoints/best.ckpt \
+  python -m gatedloop.tools.trace_ckpt --ckpt runs_ladder/looped_6/version_0/checkpoints/best.ckpt \
       --data gatedloop/configs/data/mix_fwe_code_math.yaml --loops 8 \
       --n-batches 2 --batch-size 8 --out runs_ladder/looped_6/version_0/convergence_kl
 
@@ -16,6 +16,10 @@ Writes <out>/step<global_step>_<domain>.npz with keys
 exactly like the callback, so the existing analysis code reads both.
 `--n-batches 2 --batch-size 8` at seq_len 1024 reproduces the callback's fixed
 16k-token batch per domain (the first two validation batches, unshuffled).
+
+Relative paths (--data and the bin paths inside it) resolve like training's:
+against the repo root in a checkout, else the launch directory or GATEDLOOP_ROOT
+(see gatedloop/paths.py). --ckpt and --out are taken as given.
 """
 from __future__ import annotations
 
@@ -28,20 +32,12 @@ import torch
 import torch.nn.functional as F
 from torch.utils.data import DataLoader
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-
+from gatedloop import paths
 from gatedloop.checkpoint import load_model
 from gatedloop.data.mixture import load_domains, resolve_config_path
 from gatedloop.data.text import PackedTextDataset
 
-ROOT = Path(__file__).resolve().parents[1]
-
-
-def _abs(p):
-    if p is None:
-        return None
-    q = Path(p)
-    return str(q if q.is_absolute() else ROOT / q)
+_abs = paths.resolve
 
 
 def main():
@@ -64,7 +60,7 @@ def main():
     step = int(torch.load(args.ckpt, map_location="cpu", weights_only=False).get("global_step", 0))
 
     from omegaconf import OmegaConf
-    cfg = OmegaConf.load(str(resolve_config_path(args.data, ROOT)))
+    cfg = OmegaConf.load(str(resolve_config_path(args.data, paths.project_root())))
     seq_len = args.seq_len or int(cfg.seq_len)
     domains = load_domains(cfg, _abs)
     sets = [(d.name, PackedTextDataset(d.val_bin, seq_len)) for d in domains] or \

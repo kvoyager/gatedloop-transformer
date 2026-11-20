@@ -184,7 +184,7 @@ Runs trained before the KL was added (`val_convergence.output_kl`) can be
 traced offline from a checkpoint without retraining:
 
 ```bash
-python scripts/trace_ckpt.py --ckpt runs_ladder/looped_6/version_0/checkpoints/step060000.ckpt --loops 8
+python -m gatedloop.tools.trace_ckpt --ckpt runs_ladder/looped_6/version_0/checkpoints/step060000.ckpt --loops 8
 ```
 
 ### Evaluation
@@ -270,12 +270,14 @@ gatedloop/
     lit_module.py         LightningModule: loss, schedule, loop sweep at validation
     callbacks.py          convergence trace, gate logging, throughput, samples, run control, CSV, code snapshot
   train.py                Hydra entry point (default config: train; the paper recipe is --config-name train_mix)
+  tools/
+    trace_ckpt.py         offline convergence trace (incl. output KL) from a checkpoint
   configs/
     train_mix.yaml        the shared recipe
     model/                the thirteen paper configs + plain_tiny / looped_tiny for tests
     sweep/  memory/  trainer/  optimizer/  dataloader/  data/
-scripts/                  train_tokenizer · prepare_mix · prepare_data · eval_ppl · generate · trace_ckpt
-tests/                    test_model.py · test_data.py · test_callbacks.py (unit) · smoke_pipeline.py (end-to-end)
+scripts/                  train_tokenizer · prepare_mix · prepare_data · eval_ppl · generate
+tests/                    test_model.py · test_data.py · test_callbacks.py · test_paths.py (unit) · smoke_pipeline.py (end-to-end)
 runs_ladder/              run directories + analysis/
 ```
 
