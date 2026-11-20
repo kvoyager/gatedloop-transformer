@@ -29,7 +29,9 @@ from gatedloop.tokenizer import TextTokenizer
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--ckpt", type=str, required=True)
-    ap.add_argument("--tokenizer", type=str, default="artifacts/tokenizer.json")
+    ap.add_argument("--tokenizer", type=str, default="artifacts/mix/tokenizer.json",
+                    help="default: the paper's mix tokenizer (scripts/prepare_mix.py); "
+                         "for a data=text run pass artifacts/tokenizer.json")
     ap.add_argument("--prompt", type=str, default="", help="empty → sample from <bos>")
     ap.add_argument("-n", "--n-samples", type=int, default=1)
     ap.add_argument("--max-new-tokens", type=int, default=128)
