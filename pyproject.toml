@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 [project]
 name = "gatedloop-transformer"
 dynamic = ["version"]
-description = "Decoder-only LM pretraining: a plain transformer and an attention-looped variant that re-applies each layer's attention R times."
+description = "Looped transformers with gated loop passes: code for 'Loop-Count Schedules in Looped Transformers: An Empirical Study' (arXiv:2611.29704)."
 readme = "README.md"
 license = "MIT"
 license-files = ["LICENSE"]
@@ -22,6 +22,11 @@ dependencies = [
     "rich>=13.0",
     "safetensors>=0.4",
 ]
+
+[project.urls]
+Paper = "https://arxiv.org/abs/2611.29704"
+Repository = "https://github.com/kvoyager/gatedloop-transformer"
+Weights = "https://huggingface.co/konstank/gatedloop-transformer"
 
 [project.optional-dependencies]
 dev = ["pytest>=7"]
