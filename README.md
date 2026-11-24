@@ -3,7 +3,11 @@
 Code, configurations and run logs for
 
 > **Loop-Count Schedules in Looped Transformers: An Empirical Study**
-> Konstantin Kolokolov, 2026. arXiv: *to appear*.
+> Konstantin Kolokolov, 2026. [arXiv:2611.29704](https://arxiv.org/abs/2611.29704) [cs.LG]
+
+Paper: [abstract](https://arxiv.org/abs/2611.29704) · [PDF](https://arxiv.org/pdf/2611.29704).
+Trained weights and per-token traces:
+[huggingface.co/konstank/gatedloop-transformer](https://huggingface.co/konstank/gatedloop-transformer).
 
 A looped transformer applies one block several times with shared weights. This
 repository trains small looped language models (46M–110M parameters, 2B tokens,
@@ -305,11 +309,14 @@ python tests/smoke_pipeline.py    # trains plain_tiny and looped_tiny end-to-end
 ## Citation
 
 ```bibtex
-@article{kolokolov2026loopcount,
-  title   = {Loop-Count Schedules in Looped Transformers: An Empirical Study},
-  author  = {Kolokolov, Konstantin},
-  journal = {arXiv preprint arXiv:XXXX.XXXXX},
-  year    = {2026}
+@misc{kolokolov2026loopcount,
+  title         = {Loop-Count Schedules in Looped Transformers: An Empirical Study},
+  author        = {Kolokolov, Konstantin},
+  year          = {2026},
+  eprint        = {2611.29704},
+  archivePrefix = {arXiv},
+  primaryClass  = {cs.LG},
+  url           = {https://arxiv.org/abs/2611.29704}
 }
 ```
 
